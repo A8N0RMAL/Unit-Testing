@@ -13,9 +13,11 @@ Unit testing is a software testing method where individual components (units) of
 - **Improve Design**: Writing testable code often leads to better architecture
 - **Reduce Regression**: Ensure new changes don't break existing functionality
 
-### First Test
+## First Test
+
+### Production Code
+
 ```csharp
-// Code to test
 public class WorldsDimbsetFunction
 {
     public string ReturnsPikachuIfZero(int num)
@@ -26,23 +28,25 @@ public class WorldsDimbsetFunction
             return "Squirtle";
     }
 }
+```
 
-// Unit test
+### Test Code
+```csharp
 // Naming Convention - ClassName_MethodName_ExpectedBehavior
 public static void WorldsDimbsetFunction_ReturnsPikachuIfZero_ReturnString()
 {
     try
     {
-        // We need Triple A -> Arrange - Act - Assert
+        // Triple A Pattern -> Arrange - Act - Assert
 
-        // Arrange -> Go get your variables, classes, functions, whatever you need.
+        // Arrange -> Get variables, classes, functions
         int num = 0; // variable 
         WorldsDimbsetFunction worldsDimbset = new WorldsDimbsetFunction(); // class
 
-        // Act -> Execute the function.
+        // Act -> Execute the function
         string result = worldsDimbset.ReturnsPikachuIfZero(num);
 
-        // Assert -> whatever is returned is it what you want?
+        // Assert -> Verify the returned value
         if(result == "PIKACHU!")
             Console.WriteLine("PASSED: WorldsDimbsetFunction_ReturnsPikachuIfZero_ReturnString");
         else
@@ -53,14 +57,20 @@ public static void WorldsDimbsetFunction_ReturnsPikachuIfZero_ReturnString()
         Console.WriteLine(ex);
     }
 }
-
-// Calling it from program.cs
-WorldsDimbsetFunctionTest.WorldsDimbsetFunction_ReturnsPikachuIfZero_ReturnString();
-
-// Output:
-PASSED: WorldsDimbsetFunction_ReturnsPikachuIfZero_ReturnString
-
 ```
+
+### Calling the Test
+```csharp
+// In program.cs
+WorldsDimbsetFunction_ReturnsPikachuIfZero_ReturnString();
+```
+
+### Output
+```
+PASSED: WorldsDimbsetFunction_ReturnsPikachuIfZero_ReturnString
+```
+This example demonstrates a basic unit test implementation using the Arrange-Act-Assert pattern without any external testing frameworks.
+
 ---
 
 ## 2. Unit Testing with xUnit and Fluent Assertions
