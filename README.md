@@ -243,3 +243,143 @@ dotnet test [path-to-test-project]
 
 ---
 
+## 3. Testing Objects, IEnumerable, & Dates
+
+## Overview
+
+This guide covers unit testing three common data types in C#: `DateTime`, custom objects, and `IEnumerable` collections using xUnit and Fluent Assertions.
+
+## Production Code
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Net.NetworkInformation;
+
+public class NetworkService
+{
+    public DateTime LastPingDate()
+    {
+        return DateTime.Now;
+    }
+
+    public PingOptions GetPingOptions()
+    {
+        return new PingOptions()
+        {
+            DontFragment = true,
+            Ttl = 1
+        };
+    }
+
+    public IEnumerable<PingOptions> MostRecentPings()
+    {
+        IEnumerable<PingOptions> pings = new[]
+        {
+            new PingOptions { DontFragment = true, Ttl = 1 },
+            new PingOptions { DontFragment = false, Ttl = 2 },
+            new PingOptions { DontFragment = false, Ttl = 3 }
+        };
+        return pings;
+    }
+}
+```
+
+## Test Implementation
+
+### 1. Testing DateTime
+
+```csharp
+[Fact]
+public void NetworkService_LastPingDate_ReturnDate()
+{
+    // Arrange - No specific setup needed
+    
+    // Act - Execute the method
+    var result = _pingService.LastPingDate();
+    
+    // Assert - Verify the DateTime result
+    result.Should().BeAfter(1.January(2020));
+    result.Should().BeBefore(30.January(2030));
+}
+```
+
+**Explanation:**
+- Tests that the returned date is within a reasonable range (2020-2030)
+- Uses Fluent Assertions' `BeAfter()` and `BeBefore()` methods
+- **Common Issue**: If the test fails with "Expected result to be before <2030-01-30>, but found <current date>", it means your system date is beyond 2030
+
+### Test Output 
+<img width="1882" height="850" alt="1  Test Date" src="https://github.com/user-attachments/assets/4a1dd953-bcc7-4f4b-a357-077c2b0cd58f" />
+<img width="1895" height="894" alt="1 1 Test Date" src="https://github.com/user-attachments/assets/a3cdd75e-29f9-4d2e-b0a5-21d1ec54fd62" />
+
+
+
+### 2. Testing Objects
+
+```csharp
+[Fact]
+public void NetworkService_GetPingOptions_ReturnPingOptions()
+{
+    // Arrange - Create expected result
+    var expectedResult = new PingOptions
+    {
+        DontFragment = true,
+        Ttl = 1
+    };
+    
+    // Act - Execute the method
+    var result = _pingService.GetPingOptions();
+    
+    // Assert - Verify object properties and type
+    result.Should().BeOfType<PingOptions>();
+    result.Should().BeEquivalentTo(expectedResult);
+    result.Ttl.Should().Be(1);
+}
+```
+
+**Explanation:**
+- `BeOfType<PingOptions>()` ensures the returned object is of the correct type
+- `BeEquivalentTo(expectedResult)` compares object property values (structural equality)
+- Individual property assertions (`Ttl.Should().Be(1)`) provide specific validation
+
+### Test Output 
+<img width="1915" height="860" alt="2  Test Object" src="https://github.com/user-attachments/assets/2dd0e873-3a1f-476c-ac13-47e475d20e81" />
+<img width="1919" height="959" alt="2 1 Test Object" src="https://github.com/user-attachments/assets/40b21529-2542-4620-8af7-af9fa518f463" />
+<img width="1919" height="956" alt="2 2 Test Object" src="https://github.com/user-attachments/assets/c792bfbd-f0f4-4fde-8d70-36a8b18b8ace" />
+
+
+### 3. Testing IEnumerable Collections
+
+```csharp
+[Fact]
+public void NetworkService_MostRecentPings_ReturnRecentPings()
+{
+    // Arrange - Create expected object to find in collection
+    var expectedResult = new PingOptions
+    {
+        DontFragment = false,
+        Ttl = 3
+    };
+    
+    // Act - Execute the method
+    var result = _pingService.MostRecentPings();
+    
+    // Assert - Verify collection contents
+    result.Should().BeOfType<PingOptions[]>();
+    result.Should().ContainEquivalentOf(expectedResult);
+    result.Should().Contain(png => png.DontFragment == true);
+}
+```
+
+**Explanation:**
+- `BeOfType<PingOptions[]>()` ensures the return type is correct
+- `ContainEquivalentOf(expectedResult)` checks if collection contains an object with matching properties
+- `Contain(png => png.DontFragment == true)` uses a predicate to find specific elements
+
+### Test Output 
+<img width="1919" height="964" alt="3  Test Ienumerable" src="https://github.com/user-attachments/assets/85d56dda-8a36-47fb-b418-6423ed727773" />
+<img width="1919" height="905" alt="3 1 Test Ienumerable" src="https://github.com/user-attachments/assets/e699cd41-5c2d-4c03-a955-f59eb9dbf1c0" />
+
+---
+
