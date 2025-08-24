@@ -243,3 +243,4 @@ dotnet test [path-to-test-project]
 
 ---
 
+## 3. Testing Objects, IEnumerable, & Dates
