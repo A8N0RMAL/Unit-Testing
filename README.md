@@ -1,6 +1,6 @@
 # Unit Testing in C#:
 
-## 1. Intro & First Test
+## 🎯 1. Intro & First Test
 <img width="1919" height="605" alt="image" src="https://github.com/user-attachments/assets/b0d6eb4d-3c9d-4760-ade8-e09eeb46252e" />
 
 ## What is Unit Testing?
@@ -73,13 +73,13 @@ This example demonstrates a basic unit test implementation using the Arrange-Act
 
 ---
 
-## 2. Unit Testing with xUnit and Fluent Assertions
+## 🎯 2. Unit Testing with xUnit and Fluent Assertions
 
 ## Overview
 
 This project demonstrates unit testing in C# using the **xUnit** testing framework and **Fluent Assertions** library. The example tests a `NetworkService` class that simulates network operations.
 
-## Packages Required
+### 📦Required NuGet Packages:
 
 To set up this testing environment, you need to install these NuGet packages:
 
@@ -243,7 +243,7 @@ dotnet test [path-to-test-project]
 
 ---
 
-## 3. Testing Objects, IEnumerable, & Dates
+## 🎯 3. Testing Objects, IEnumerable, & Dates
 
 ## Overview
 
@@ -383,3 +383,118 @@ public void NetworkService_MostRecentPings_ReturnRecentPings()
 
 ---
 
+## 🎯 4. Unit Testing with Mocking using FakeItEasy
+### Introduction to Mocking
+
+Mocking is a technique used in unit testing to isolate the code being tested by replacing dependencies with simulated objects (mocks). This ensures that:
+- Tests run quickly and consistently
+- External dependencies don't affect test results
+- You can test specific scenarios without real implementations
+
+### 📦Required NuGet Packages:
+```xml
+<PackageReference Include="FakeItEasy" Version="7.3.1" />
+```
+
+### Install via Package Manager Console:
+```powershell
+Install-Package FakeItEasy
+```
+
+
+## 🔍 Code Explanation
+
+### 1. Interface Definition (`IDNS.cs`)
+```csharp
+public interface IDNS
+{
+    bool sendDNS();
+}
+```
+- Defines a contract for DNS functionality
+- Allows for dependency injection and mocking
+
+### 2. Concrete Implementation (`DNSService.cs`)
+```csharp
+public class DNSService : IDNS
+{
+    public bool sendDNS()
+    {
+        return true; // Real implementation
+    }
+}
+```
+- Actual implementation that would make real DNS calls
+- In production, this would contain real network logic
+
+### 3. Main Service (`NetworkService.cs`)
+```csharp
+public class NetworkService
+{
+    private IDNS _dNS;
+    
+    public NetworkService(IDNS dNS)
+    {
+        _dNS = dNS; // Dependency injection
+    }
+    
+    public string SendPing()
+    {
+        var dnsSuccess = _dNS.sendDNS(); // Using dependency
+
+        if (dnsSuccess)
+            return "Success: Ping Sent!";
+        else
+            return "Failed: Ping not sent!";
+    }
+}
+```
+- **Constructor Injection**: Accepts `IDNS` interface as dependency
+- **Loose Coupling**: Depends on abstraction, not concrete implementation
+- **Testable**: Easy to mock the DNS dependency
+
+### 4. Unit Test Class (`NetworkServiceTest.cs`)
+```csharp
+public class NetworkServiceTest
+{
+    private readonly NetworkService _pingService;
+    private readonly IDNS _dNS;
+    
+    public NetworkServiceTest()
+    {
+        // Create fake dependency
+        _dNS = A.Fake<IDNS>(); // Using FakeItEasy
+        
+        // Inject fake dependency into service
+        _pingService = new NetworkService(_dNS);
+    }
+    
+    [Fact]
+    public void NetworkService_SendPing_ReturnString()
+    {
+        // Arrange -> Setup mock behavior
+        A.CallTo(() => _dNS.sendDNS()).Returns(true);
+
+        // Act -> Execute the method
+        var result = _pingService.SendPing();
+
+        // Assert -> Verify results
+        result.Should().NotBeNullOrWhiteSpace();
+        result.Should().Be("Success: Ping Sent!");
+        result.Should().Contain("Success", Exactly.Once());
+    }
+}
+```
+
+## 🧪 Test Execution & Debugging
+### Expected Output in Autos Window:
+<img width="1917" height="795" alt="Screenshot 2025-08-25 150432" src="https://github.com/user-attachments/assets/1fc05110-c657-4429-a69c-1f6037a7d809" />
+
+## 🎯 What This Test Achieves
+
+### **Isolation**
+- The test doesn't use the real `DNSService`
+- No actual network calls are made
+- Tests are fast and reliable
+
+---
