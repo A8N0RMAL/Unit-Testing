@@ -591,3 +591,212 @@ Actual type: Task<ViewResult>
 ```
 
 ---
+
+## 🎯 6. MVC Entity Framework with In-Memory Database
+## Overview
+
+This documentation covers unit testing strategies for the `ClubRepository` using Entity Framework Core's in-memory database provider. The tests validate data access layer operations without requiring a physical database.
+
+## Test Architecture
+
+### In-Memory Database Setup
+```csharp
+private async Task<ApplicationDbContext> GetDbContext()
+{
+    var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+        .Options;
+    var databaseContext = new ApplicationDbContext(options);
+    databaseContext.Database.EnsureCreated();
+    
+    // Seed test data if needed
+    if(await databaseContext.Clubs.CountAsync() < 0)
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            databaseContext.Clubs.Add(new Club() { /* ... */ });
+            await databaseContext.SaveChangesAsync();
+        }
+    }
+    return databaseContext;
+}
+```
+
+**Key Components:**
+- **UseInMemoryDatabase**: Creates isolated database instances for each test
+- **Guid.NewGuid().ToString()**: Ensures unique database names to prevent test interference
+- **EnsureCreated()**: Creates the database schema
+
+## Unit Tests
+
+### 1. Add Operation Test
+```csharp
+[Fact]
+public async void ClubRepository_Add_ReturnsBool()
+{
+    // Arrange
+    var club = new Club() { /* test data */ };
+    var dbContext = await GetDbContext();
+    var clubRepository = new ClubRepository(dbContext);
+
+    // Act
+    var result = clubRepository.Add(club);
+
+    // Assert
+    result.Should().BeTrue();
+}
+```
+
+**Test Analysis:**
+- Creates a new Club entity with complete data structure
+- Uses isolated in-memory database context
+- Verifies Add operation returns true (success)
+- Tests the complete repository Save() mechanism
+
+### 2. GetByIdAsync Operation Test
+```csharp
+[Fact]
+public async void ClubRepository_GetByIdAsync_ReturnsClub()
+{
+    // Arrange
+    var id = 1;
+    var dbContext = await GetDbContext();
+    var clubRepository = new ClubRepository(dbContext);
+
+    // Act
+    var result = clubRepository.GetByIdAsync(id);
+
+    // Assert
+    result.Should().NotBeNull();
+    result.Should().BeOfType<Task<Club>>();
+}
+```
+
+**Test Analysis:**
+- Tests retrieval of entity by primary key
+- Includes related Address data via Include() in repository
+- Validates return type and non-null response
+
+### 3. GetAll Operation Test
+```csharp
+[Fact]
+public async void ClubRepository_GetAll_ReturnsList()
+{
+    // Arrange
+    var dbContext = await GetDbContext();
+    var clubRepository = new ClubRepository(dbContext);
+
+    // Act
+    var result = await clubRepository.GetAll();
+
+    // Assert
+    result.Should().NotBeNull();
+    result.Should().BeOfType<List<Club>>();
+}
+```
+
+**Test Analysis:**
+- Tests complete collection retrieval
+- Verifies return type as List<Club>
+- Ensures method doesn't return null
+
+### 4. Delete Operation Test
+```csharp
+[Fact]
+public async void ClubRepository_SuccessfulDelete_ReturnsTrue()
+{
+    // Arrange
+    var club = new Club() { /* test data */ };
+    var dbContext = await GetDbContext();
+    var clubRepository = new ClubRepository(dbContext);
+
+    // Act
+    clubRepository.Add(club);
+    var result = clubRepository.Delete(club);
+    var count = await clubRepository.GetCountAsync();
+
+    // Assert
+    result.Should().BeTrue();
+    count.Should().Be(0);
+}
+```
+
+**Test Analysis:**
+- Tests complete CRUD cycle: Add → Delete → Verify
+- Uses GetCountAsync() to confirm deletion
+- Validates both operation success and data state change
+
+### 5. GetCountAsync Operation Test
+```csharp
+[Fact]
+public async void ClubRepository_GetCountAsync_ReturnsInt()
+{
+    // Arrange
+    var club = new Club() { /* test data */ };
+    var dbContext = await GetDbContext();
+    var clubRepository = new ClubRepository(dbContext);
+
+    // Act
+    clubRepository.Add(club);
+    var result = await clubRepository.GetCountAsync();
+
+    // Assert
+    result.Should().Be(1);
+}
+```
+
+**Test Analysis:**
+- Tests aggregate function CountAsync()
+- Verifies exact count after insertion
+- Validates EF Core's counting mechanism
+
+### 6. State-Based Query Test
+```csharp
+[Fact]
+public async void ClubRepository_GetClubsByState_ReturnsList()
+{
+    // Arrange
+    var state = "NC";
+    var club = new Club() { 
+        Address = new Address() { State = "NC" } 
+    };
+    var dbContext = await GetDbContext();
+    var clubRepository = new ClubRepository(dbContext);
+
+    // Act
+    clubRepository.Add(club);
+    var result = await clubRepository.GetClubsByState(state);
+
+    // Assert
+    result.Should().NotBeNull();
+    result.Should().BeOfType<List<Club>>();
+    result.First().Title.Should().Be("Running Club 1");
+}
+```
+
+**Test Analysis:**
+- Tests LINQ Where() filtering with string comparison
+- Validates related entity navigation (Address.State)
+- Includes property-level assertion for precise validation
+
+## Test Outputs
+
+**Successful Test Execution:**
+```
+ClubRepository_Add_ReturnsBool [PASS]
+ClubRepository_GetByIdAsync_ReturnsClub [PASS]
+ClubRepository_GetAll_ReturnsList [PASS]
+ClubRepository_SuccessfulDelete_ReturnsTrue [PASS]
+ClubRepository_GetCountAsync_ReturnsInt [PASS]
+ClubRepository_GetAllStates_ReturnsList [PASS]
+ClubRepository_GetClubsByState_ReturnsList [PASS]
+```
+
+**Test Failure Example:**
+```
+ClubRepository_GetCountAsync_ReturnsInt [FAIL]
+Expected: 1
+Actual: 0
+```
+
+---
