@@ -498,3 +498,96 @@ public class NetworkServiceTest
 - Tests are fast and reliable
 
 ---
+
+## 🎯 5. ASP.NET Core MVC Controllers
+## Overview
+
+This document covers unit testing strategies for the `ClubController` using the FakeItEasy mocking framework. The tests validate controller behavior without external dependencies.
+
+## Test Architecture
+
+### Dependencies
+- **IClubRepository**: Data access operations
+- **IPhotoService**: Image handling operations
+- Fake implementations isolate controller logic
+
+### Test Class Structure
+```csharp
+public class ClubControllerTests
+{
+    private readonly ClubController _clubController;
+    private readonly IClubRepository _clubRepository;
+    private readonly IPhotoService _photoService;
+
+    public ClubControllerTests()
+    {
+        _clubRepository = A.Fake<IClubRepository>();
+        _photoService = A.Fake<IPhotoService>();
+        _clubController = new ClubController(_clubRepository, _photoService);
+    }
+}
+```
+
+## Unit Tests
+
+### 1. Index Action Test
+```csharp
+[Fact]
+public void ClubController_Index_ReturnsSuccess()
+{
+    // Arrange
+    var clubs = A.Fake<IEnumerable<Club>>();
+    A.CallTo(() => _clubRepository.GetAll()).Returns(clubs);
+    
+    // Act
+    var result = _clubController.Index();
+    
+    // Assert
+    result.Should().BeOfType<Task<IActionResult>>();
+}
+```
+
+**Test Analysis:**
+- Mocks repository `GetAll()` method to return fake club collection
+- Verifies controller returns expected `Task<IActionResult>` type
+- No actual database calls occur during test execution
+
+### 2. Detail Action Test
+```csharp
+[Fact]
+public void ClubController_Detail_ReturnsSuccess()
+{
+    // Arrange
+    var id = 1;
+    var club = A.Fake<Club>();
+    A.CallTo(() => _clubRepository.GetByIdAsync(id)).Returns(club);
+    
+    // Act
+    var result = _clubController.DetailClub(id, "RunningClub");
+    
+    // Assert
+    result.Should().BeOfType<Task<IActionResult>>();
+}
+```
+
+**Test Analysis:**
+- Mocks repository `GetByIdAsync()` with specific ID parameter
+- Validates controller returns proper async result type
+- String parameter "RunningClub" supports SEO-friendly routing
+
+## Test Outputs
+
+**Successful Test Execution:**
+```
+ClubController_Index_ReturnsSuccess [PASS]
+ClubController_Detail_ReturnsSuccess [PASS]
+```
+
+**Test Failure Example:**
+```
+ClubController_Index_ReturnsSuccess [FAIL]
+Expected type: Task<IActionResult>
+Actual type: Task<ViewResult>
+```
+
+---
