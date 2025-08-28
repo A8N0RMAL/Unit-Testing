@@ -800,3 +800,132 @@ Actual: 0
 ```
 
 ---
+
+## 🎯 7. Web API Controllers
+## Overview
+
+This guide explains how to write unit tests for ASP.NET Core Web API controllers, specifically focusing on the `PokemonController`. Unit testing controllers ensures that your API endpoints behave as expected without making actual database calls or relying on external dependencies.
+
+We'll be testing two main endpoints:
+1. `GetPokemons()` - Returns all pokemons
+2. `CreatePokemon()` - Creates a new pokemon
+
+We'll use the **xUnit** testing framework, **FakeItEasy** for mocking dependencies, and **FluentAssertions** for writing expressive assertions.
+
+## Required NuGet Packages
+
+Install these packages in your test project:
+
+```bash
+Install-Package xunit
+Install-Package xunit.runner.visualstudio
+Install-Package Microsoft.NET.Test.Sdk
+Install-Package FakeItEasy
+Install-Package FluentAssertions
+Install-Package AutoMapper
+Install-Package Microsoft.AspNetCore.Mvc.Core
+```
+
+## Test Structure Explanation
+
+### 1. GetPokemons Endpoint Test
+
+**Endpoint**: `GET /api/pokemon`
+**Purpose**: Retrieves all pokemons from the repository
+
+```csharp
+[Fact]
+public void PokemonController_GetPokemons_ReturnOK()
+{
+    // Arrange
+    var pokemons = A.Fake<ICollection<PokemonDto>>();
+    var pokemonList = A.Fake<List<PokemonDto>>();
+    A.CallTo(() => _mapper.Map<List<PokemonDto>>(pokemons)).Returns(pokemonList);
+    var controller = new PokemonController(_pokemonRepository, _reviewRepository, _mapper);
+
+    // Act
+    var result = controller.GetPokemons();
+
+    // Assert
+    result.Should().NotBeNull();
+    result.Should().BeOfType(typeof(OkObjectResult));
+}
+```
+
+**Test Explanation**:
+1. **Arrange**: Set up fake dependencies and mock the mapper to return a fake list of PokemonDto
+2. **Act**: Call the GetPokemons() method on the controller
+3. **Assert**: Verify that the result is not null and is of type OkObjectResult (status 200)
+
+## GetPokemons Test Output
+When the test passes, you'll see:
+```
+✓ PokemonController_GetPokemons_ReturnOK [25ms]
+```
+
+If it fails, you might see something like:
+```
+✗ PokemonController_GetPokemons_ReturnOK [15ms]
+  Error Message:
+  Expected type to be Microsoft.AspNetCore.Mvc.OkObjectResult, but found Microsoft.AspNetCore.Mvc.BadRequestObjectResult.
+```
+
+### 2. CreatePokemon Endpoint Test
+
+**Endpoint**: `POST /api/pokemon?ownerId=1&catId=2`
+**Purpose**: Creates a new pokemon with specified owner and category
+
+```csharp
+[Fact]
+public void PokemonController_CreatePokemon_ReturnOK()
+{
+    // Arrange
+    int ownerId = 1;
+    int catId = 2;
+    var pokemonMap = A.Fake<Pokemon>();
+    var pokemon = A.Fake<Pokemon>();
+    var pokemonCreate = A.Fake<PokemonDto>();
+    var pokemons = A.Fake<ICollection<PokemonDto>>();
+    var pokmonList = A.Fake<IList<PokemonDto>>();
+    
+    A.CallTo(() => _pokemonRepository.GetPokemonTrimToUpper(pokemonCreate)).Returns(pokemon);
+    A.CallTo(() => _mapper.Map<Pokemon>(pokemonCreate)).Returns(pokemon);
+    A.CallTo(() => _pokemonRepository.CreatePokemon(ownerId, catId, pokemonMap)).Returns(true);
+    
+    var controller = new PokemonController(_pokemonRepository, _reviewRepository, _mapper);
+
+    // Act
+    var result = controller.CreatePokemon(ownerId, catId, pokemonCreate);
+
+    // Assert
+    result.Should().NotBeNull();
+}
+```
+
+**Test Explanation**:
+1. **Arrange**: 
+   - Set up parameters (ownerId, catId)
+   - Create fake objects for Pokemon, PokemonDto, and collections
+   - Mock repository methods to return expected values
+   - Mock mapper to convert between DTO and entity
+
+2. **Act**: Call the CreatePokemon method with the test parameters
+
+3. **Assert**: Verify that the result is not null (could be expanded to check for specific response types)
+
+## CreatePokemon Test Output
+When the test passes:
+```
+✓ PokemonController_CreatePokemon_ReturnOK [32ms]
+```
+
+## Key Testing Concepts
+
+### Mocking Dependencies
+We use FakeItEasy to create mock implementations of:
+- `IPokemonRepository`: Data access layer for pokemons
+- `IReviewRepository`: Data access layer for reviews
+- `IMapper`: AutoMapper for object-object mapping
+
+---
+
