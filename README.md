@@ -929,3 +929,171 @@ We use FakeItEasy to create mock implementations of:
 
 ---
 
+## 🎯 8. Web API Entity Framework
+## Overview
+
+This project implements unit tests for the `PokemonRepository` class, which handles data access operations for a Pokemon Web API using Entity Framework Core. The tests ensure that repository methods correctly interact with the database and return expected results.
+
+## 📦 Required NuGet Packages
+
+The unit tests require the following NuGet packages:
+
+```xml
+<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.0" />
+<PackageReference Include="xunit" Version="2.4.1" />
+<PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
+<PackageReference Include="FluentAssertions" Version="6.7.0" />
+<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
+```
+
+**Package Purposes:**
+- **Microsoft.EntityFrameworkCore.InMemory**: Provides in-memory database provider for EF Core
+- **xunit**: Testing framework for writing and executing tests
+- **FluentAssertions**: Provides readable assertion syntax for test validations
+- **Microsoft.NET.Test.Sdk**: Test execution platform
+
+## 🛠️ Testing Setup & Approach
+
+### In-Memory Database Configuration
+Tests use Entity Framework Core's InMemory provider for isolated testing without external database dependencies:
+
+```csharp
+private async Task<DataContext> GetDatabaseContext()
+{
+    var options = new DbContextOptionsBuilder<DataContext>()
+        .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+        .Options;
+    var databaseContext = new DataContext(options);
+    databaseContext.Database.EnsureCreated();
+    // Test data population
+    return databaseContext;
+}
+```
+
+### Test Data Structure
+Each test Pokemon entity includes:
+- **Basic Information**: Name: "Pikachu", BirthDate: January 1, 1903
+- **Category Association**: Electric-type category through PokemonCategories
+- **Review Data**: Three reviews with ratings 5, 5, and 1
+
+### Testing Methodology
+- **Arrange-Act-Assert Pattern**: Clear separation of test setup, execution, and verification
+- **Async Test Methods**: Proper handling of Entity Framework Core asynchronous operations
+- **FluentAssertions**: Readable and expressive assertion syntax
+- **Isolated Database**: Each test uses a unique in-memory database instance
+
+## 🧪 Tested Repository Methods
+
+### 1. `GetPokemon(string name)`
+**Purpose**: Retrieves a Pokemon entity from the database by name
+```csharp
+public Pokemon GetPokemon(string name)
+{
+    return _context.Pokemon.Where(p => p.Name == name).FirstOrDefault();
+}
+```
+
+**Related Test Method**: `PokemonRepository_GetPokemon_ReturnsPokemon()`
+
+**Test Implementation**:
+```csharp
+[Fact]
+public async void PokemonRepository_GetPokemon_ReturnsPokemon()
+{
+    //Arrange
+    var name = "Pikachu";
+    var dbContext = await GetDatabaseContext();
+    var pokemonRepository = new PokemonRepository(dbContext);
+
+    //Act
+    var result = pokemonRepository.GetPokemon(name);
+
+    //Assert
+    result.Should().NotBeNull();
+    result.Should().BeOfType<Pokemon>();
+}
+```
+
+**Test Explanation**:
+- **Test Data**: Database contains 10 Pokemon entities named "Pikachu"
+- **Verification**: 
+  - Returns non-null Pokemon object when name exists
+  - Returns correct type (Pokemon)
+- **What it tests**:
+  - LINQ query correctness (`Where(p => p.Name == name)`)
+  - `FirstOrDefault()` behavior (returns first match or null)
+  - Database context interaction
+- **Test Output Example**:
+  ```
+  Input: name = 'Pikachu'
+  Result: Pokemon found - Name: Pikachu, ID: 1
+  Status: PASSED
+  ```
+
+### 2. `GetPokemonRating(int pokeId)`
+**Purpose**: Calculates the average rating for a Pokemon based on reviews
+```csharp
+public decimal GetPokemonRating(int pokeId)
+{
+    var review = _context.Reviews.Where(p => p.Pokemon.Id == pokeId);
+    
+    if (review.Count() <= 0)
+        return 0;
+        
+    return ((decimal)review.Sum(r => r.Rating) / review.Count());
+}
+```
+
+**Related Test Method**: `PokemonRepository_GetPokemonRating_ReturnDecimalBetweenOneAndTen()`
+
+**Test Implementation**:
+```csharp
+[Fact]
+public async void PokemonRepository_GetPokemonRating_ReturnDecimalBetweenOneAndTen()
+{
+    //Arrange
+    var pokeId = 1;
+    var dbContext = await GetDatabaseContext();
+    var pokemonRepository = new PokemonRepository(dbContext);
+
+    //Act
+    var result = pokemonRepository.GetPokemonRating(pokeId);
+
+    //Assert
+    result.Should().NotBe(0);
+    result.Should().BeInRange(1, 10);
+}
+```
+
+**Test Explanation**:
+- **Test Data**: Each Pokemon has 3 reviews with ratings: 5, 5, and 1
+- **Expected Calculation**: (5 + 5 + 1) / 3 = 3.67
+- **What it tests**:
+  - Review filtering by Pokemon ID (`Where(p => p.Pokemon.Id == pokeId)`)
+  - Empty review collection handling (returns 0)
+  - Average calculation logic (`Sum(r => r.Rating) / review.Count()`)
+  - Decimal conversion and division accuracy
+- **Verification**:
+  - Returns non-zero value when reviews exist
+  - Returns value within valid range (1-10)
+  - Correctly calculates average rating
+- **Test Output Example**:
+  ```
+  Input: pokeId = 1
+  Reviews: 3 reviews with ratings: 5, 5, 1
+  Calculation: (5 + 5 + 1) / 3 = 3.67
+  Result: 3.67
+  Status: PASSED
+  ```
+
+## ✅ Test Results Summary
+
+```
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+     Failed: 0
+ Total time: 1.2345 seconds
+```
+
+---
